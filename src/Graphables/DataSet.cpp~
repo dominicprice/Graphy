@@ -1,0 +1,130 @@
+#include <Graphy/Graphables/DataSet.hpp>
+#include <sstream>
+#include <iomanip>
+#include <algorithm>
+#include <internal/SFMath.h>
+#include <internal/SFDraw.h>
+
+namespace graphy
+{
+	DataSet::DataSet() :
+		DataSet(std::vector<Point>())
+	{
+
+	}
+
+	DataSet::DataSet(std::vector<Point> point_set) :
+		points(point_set), join(false)
+	{
+
+	}
+
+	DataSet::iterator DataSet::begin()
+	{
+		return points.begin();
+	}
+
+	DataSet::iterator DataSet::end()
+	{
+		return points.end();
+	}
+
+	DataSet::const_iterator DataSet::begin() const
+	{
+		return points.cbegin();
+	}
+
+	DataSet::const_iterator DataSet::end() const
+	{
+		return points.cend();
+	}
+
+	void DataSet::draw()
+	{
+		//Draw line
+		if (join && points.size() > 1) {
+			for (unsigned int i = 0; i < points.size() - 1; ++i)
+				canvas.draw(Canvas::Objects, sfd::line(map(points[i]), map(points[i + 1]), style.thickness, style.color));
+		}
+
+		//Draw data points
+		sf::ConvexShape cs;
+		for (const Point& point : points) {
+			//Do not draw if offscreen
+			//if (!bounds().contains(point))
+				//continue;
+
+			cs = point.style.shape;
+			//Style the point
+			if (point.style.outline > 0) {
+				cs.setFillColor(sf::Color::Transparent);
+				cs.setOutlineColor(point.style.color);
+				cs.setOutlineThickness(point.style.outline);
+			}
+			else {
+				cs.setFillColor(point.style.color);
+				cs.setOutlineThickness(0);
+			}
+			//Draw point
+			cs.setPosition(map(point.x, point.y));
+			canvas.draw(Canvas::Objects, cs);
+
+			//Draw point labels
+			sf::Text t(point.resolve_label(), canvas.font(), point.style.label.size);
+			t.setFillColor(point.style.label.color);
+			t.setPosition(map(point.x, point.y) + sf::Vector2f(point.style.label.offset, point.style.label.offset));
+			switch (point.style.label.pos) {
+			case LabelStyle::below_left:
+				t.move(sf::Vector2f(-t.getLocalBounds().width, 0));
+				break;
+			case LabelStyle::above_left:
+				t.move(sf::Vector2f(-t.getLocalBounds().width, -t.getLocalBounds().height * 2));
+				break;
+			case LabelStyle::above_right:
+				t.move(sf::Vector2f(0, -t.getLocalBounds().height * 2));
+				break;
+			case LabelStyle::below_right:
+				t.move(sf::Vector2f(0, 0));
+				break;
+			default:
+				break;
+			}
+			canvas.draw(Canvas::Labels, t);
+		}
+
+		//Line label
+		if (style.label.enabled) {
+			sf::Text t(style.label.text, canvas.font(), style.label.size);
+			t.setFillColor(style.label.color);
+			//Position
+			sf::Vector2d bound_below = points.front(), bound_above = points.front();
+			for (const auto& point : points) {
+				if (point.x < style.label.x && point.x > bound_below.x)
+					bound_below = point;
+				if (point.x > style.label.x && point.x < bound_above.x)
+					bound_above = point;
+			}
+			sf::Vector2f pos = map(style.label.x, bound_below.y + (bound_above.y - bound_below.y)*(style.label.x - bound_below.x) / (bound_above.x - bound_below.x));
+			t.setPosition(pos.x, pos.y);
+
+			switch (style.label.pos) {
+			case LabelStyle::below_left:
+				t.move(sf::Vector2f(-t.getLocalBounds().width, 0));
+				break;
+			case LabelStyle::above_left:
+				t.move(sf::Vector2f(-t.getLocalBounds().width, -t.getLocalBounds().height * 2));
+				break;
+			case LabelStyle::above_right:
+				t.move(sf::Vector2f(0, -t.getLocalBounds().height * 2));
+				break;
+			case LabelStyle::below_right:
+				t.move(sf::Vector2f(0, 0));
+				break;
+			default:
+				break;
+			}
+
+			canvas.draw(Canvas::Labels, t);
+		}
+	}
+}

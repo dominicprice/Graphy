@@ -1,0 +1,43 @@
+#include <Graphy/Graph.hpp>
+#include <Graphy/Graphables/Axis.hpp>
+#include <iostream>
+
+namespace graphy
+{
+
+	sf::ContextSettings Graph::context(0, 0, 8, 2, 0);
+	float Graph::status_bar_height = 20;
+
+	Graph::Graph(const std::string& title, bool fullscreen, unsigned int width, unsigned int height) :
+		zoom_speed(1.5f), scroll_speed(250),
+		sbar(window, status_bar_height, font),
+		bg_color(sf::Color::White), default_filename(title), print_counter(0),
+		bounds(-1, 1, 2, 2)
+	{
+		//Set size of window
+		if (fullscreen)
+			window.create(sf::VideoMode::getFullscreenModes()[0], title, sf::Style::Fullscreen, context);
+		else
+			window.create(sf::VideoMode(width, height), title, sf::Style::Default, context);
+		window.setView(sf::View(sf::FloatRect(0.f, 0.f, static_cast<float>(this->width()), static_cast<float>(this->height()))));
+
+		//Load font
+		if (!font.loadFromFile("arial.ttf"))
+			std::cerr << "Could not load font";
+
+		//Limit framerate
+		window.setVerticalSyncEnabled(true);
+
+		//Make canvas
+		for (sf::RenderTexture& layer : layers) {
+			layer.create(width, height);
+			layer.setSmooth(true);
+		}
+	}
+
+	Graph::~Graph()
+	{
+		window.close();
+	}
+
+}

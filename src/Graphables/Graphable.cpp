@@ -1,0 +1,72 @@
+#include <Graphy/Graphable.hpp>
+#include <Graphy/Graph.hpp>
+#include <iostream>
+
+namespace graphy
+{
+
+	Graphable::Graphable() :
+		graph(nullptr), canvas(this)
+	{
+
+	}
+
+	sf::Font& Graphable::Canvas::font()
+	{
+		return graphable->graph->font;
+	}
+
+	void Graphable::Canvas::draw(Layer layer, const sf::Vertex* vertices, size_t count, sf::PrimitiveType type, const sf::RenderStates& states)
+	{
+		return graphable->graph->layers[layer].draw(vertices, count, type, states);
+	}
+
+	void Graphable::Canvas::draw(Layer layer, const sf::Drawable& drawable, const sf::RenderStates& states)
+	{
+		return graphable->graph->layers[layer].draw(drawable, states);
+	}
+
+	sf::DoubleRect& Graphable::bounds()
+	{
+		return graph->bounds;
+	}
+
+	//Convert from graph coordinates to window coordinates
+
+	//Absolute coordinates
+	sf::Vector2f Graphable::map(double x, double y) { return graph->map(x, y); }
+	sf::Vector2f Graphable::map(sf::Vector2d p) { return graph->map(p); }
+	float Graphable::map_x(double x) { return graph->map_x(x); }
+	float Graphable::map_y(double y) { return graph->map_y(y); }
+	//Relative coordinates
+	sf::Vector2f Graphable::rmap(double x, double y) { return graph->rmap(x, y); }
+	sf::Vector2f Graphable::rmap(sf::Vector2d p) { return graph->rmap(p); }
+	float Graphable::rmap_x(double x) { return graph->rmap_x(x); }
+	float Graphable::rmap_y(double y) { return graph->rmap_y(y); }
+
+	//Convert from window coordinates to graph coordinates
+
+	//Absolute coordinates
+	sf::Vector2d Graphable::amap(float x, float y) { return graph->amap(x, y); }
+	sf::Vector2d Graphable::amap(sf::Vector2f p) { return graph->amap(p); }
+	double Graphable::amap_x(float x) { return graph->amap_x(x); }
+	double Graphable::amap_y(float y) { return graph->amap_y(y); }
+	//Relative coordinate
+	sf::Vector2d Graphable::armap(float x, float y) { return graph->armap(x, y); }
+	sf::Vector2d Graphable::armap(sf::Vector2f p) { return graph->armap(p); }
+	double Graphable::armap_x(float x) { return graph->armap_x(x); }
+	double Graphable::armap_y(float y) { return graph->armap_y(y); }
+
+	float Graphable::Canvas::width()
+	{
+		return graphable->graph->width();
+	}
+
+	float Graphable::Canvas::height()
+	{
+		return graphable->graph->height();
+	}
+
+	Graphable::Canvas::Canvas(Graphable* graphable) : graphable(graphable) {}
+
+}

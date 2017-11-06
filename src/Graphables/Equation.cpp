@@ -1,0 +1,132 @@
+#include <Graphy/Graphables/Equation.hpp>
+#include <SFMath.h>
+#include <SFDraw.h>
+
+namespace graphy
+{
+
+	const double Equation::delta = 0.001;
+
+	Equation::Equation(std::function<double(double)> equation, LineStyle style) :
+		equation(equation), style(style), grain_size(3)
+	{
+
+	}
+
+	Equation::~Equation()
+	{
+
+	}
+
+	double Equation::y(double x) const
+	{
+		return equation(x);
+	}
+
+	double Equation::x(double y, unsigned int its) const
+	{
+		return x(y, y, its);
+	}
+
+	double Equation::x(double y, double x0, unsigned int its) const
+	{
+		double x = x0;
+		for (unsigned int i = 0; i < its; ++i)
+			x -= this->y(x) / dy(x);
+		return x;
+	}
+
+	double Equation::dy(double x) const
+	{
+		return dn_y(1, x);
+		//return (y(x + delta) - y(x - delta)) / (2*delta);
+	}
+
+	double Equation::dn_y(unsigned int n, double x) const
+	{
+		double* ys = new double[2 * n + 1];
+		for (unsigned int i = 0; i < 2 * n + 1; ++i)
+			ys[i] = y(x + (static_cast<int>(i) - static_cast<int>(n)) * delta);
+		return dn_rec(n, ys);
+	}
+
+	double Equation::dn_rec(unsigned int n, double* ys) const
+	{
+		if (n == 0) {
+			double y = ys[0];
+			delete[] ys;
+			return y;
+		}
+		else {
+			for (unsigned int i = 0; i < 2 * n - 1; ++i)
+				ys[i] = (ys[i + 2] - ys[i]) / (2 * delta);
+			return dn_rec(n - 1, ys);
+		}
+	}
+
+	void Equation::draw()
+	{
+		//Draw the curve
+		unsigned int no_of_points = static_cast<unsigned int>(canvas.width() / grain_size);
+		for (unsigned int i = 0; i < no_of_points; ++i)
+			canvas.draw(Canvas::Objects, sfd::line(
+				sf::Vector2f{ i*grain_size, map_y(y(amap_x(i*grain_size))) },
+				sf::Vector2f{ (i + 1)*grain_size, map_y(y(amap_x((i + 1)*grain_size))) },
+				style.thickness, style.color));
+
+		//Draw the label
+		if (style.label.enabled) {
+			sf::Text t(style.label.text, canvas.font(), style.label.size);
+			t.setFillColor(style.label.color);
+			//Position
+			sf::Vector2f pos(map(style.label.x, y(style.label.x)));
+			switch (style.label.pos) {
+			case LabelStyle::below_left:
+				t.setPosition(pos + sf::Vector2f(-t.getLocalBounds().width, 0));
+				break;
+			case LabelStyle::above_left:
+				t.setPosition(pos + sf::Vector2f(-t.getLocalBounds().width, -t.getLocalBounds().height * 2));
+				break;
+			case LabelStyle::above_right:
+				t.setPosition(pos + sf::Vector2f(0, -t.getLocalBounds().height * 2));
+				break;
+			case LabelStyle::below_right:
+				t.setPosition(pos + sf::Vector2f(0, 0));
+				break;
+			default:
+				break;
+			}
+
+			canvas.draw(Canvas::Labels, t);
+		}
+
+		//Draw inequality region
+		if (style.inequality.enabled) {
+
+			//Make vertex array of points along curve
+			unsigned int no_of_points = static_cast<unsigned int>(canvas.width() / grain_size);
+			sf::VertexArray curve = sf::VertexArray(sf::LinesStrip, no_of_points);
+			for (unsigned int i = 0; i < no_of_points; ++i)
+				curve[i] = sf::Vertex(
+					sf::Vector2f(
+						i*grain_size,
+						map_y(y(amap_x(i*grain_size)))),
+					style.color);
+
+			//The region is drawn as a series of quadrilaterals between two
+			//adjacent points on the curve and two points at an appropriate
+			//side of the window
+			float y_value = style.inequality.region == InequalityStyle::greater_than ? 0 : canvas.height();
+			//Make shape, add vertices, colour and draw
+			sf::ConvexShape cs(4);
+			cs.setFillColor(style.inequality.color);
+			for (unsigned int i = 0; i < no_of_points - 1; i++) {
+				cs.setPoint(0, curve[i].position);
+				cs.setPoint(1, sf::Vector2f(curve[i].position.x, y_value));
+				cs.setPoint(2, sf::Vector2f(curve[i + 1].position.x, y_value));
+				cs.setPoint(3, curve[i + 1].position);
+				canvas.draw(Canvas::Background, cs);
+			}
+		}
+	}
+}

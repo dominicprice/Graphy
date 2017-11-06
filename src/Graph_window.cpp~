@@ -1,0 +1,180 @@
+#include "Graph.h"
+#include "Graphable.h"
+#include "Axis.h"
+#include <sstream>
+#include <iomanip>
+#include "PROG_INFO.h"
+#include <ctime>
+
+namespace graphy
+{
+
+	void Graph::update()
+	{
+		static sf::Clock clock;
+		static float framerate = 0;
+		static unsigned int frames = 0;
+		if (clock.getElapsedTime().asSeconds() > 1) {
+			framerate = frames / clock.restart().asSeconds();
+			frames = 0;
+		}
+		++frames;
+
+		//Clear
+		for (sf::RenderTexture& layer : layers)
+			layer.clear(sf::Color::Transparent);
+		window.clear(bg_color);
+
+		//Draw Graphables
+		for (Graphable* graphable : graphables)
+			graphable->draw();
+
+		//Draw layers
+		sf::Sprite sprite;
+		for (sf::RenderTexture& layer : layers) {
+			layer.display();
+			sprite.setTexture(layer.getTexture());
+			window.draw(sprite);
+		}
+
+		//Draw status bar
+		std::stringstream s;
+		s << std::scientific << std::setprecision(2)
+			<< "x=" << amap_x(static_cast<float>(sf::Mouse::getPosition(window).x))
+			<< "  y=" << amap_y(static_cast<float>(sf::Mouse::getPosition(window).y))
+			<< "\t|\t" << bounds.left << "<x<" << bounds.left + bounds.width
+			<< "  " << bounds.top - bounds.height << "<y<" << bounds.top
+			<< "\t|\tframerate: " << std::fixed << framerate
+			<< "\t|\tdisplaying " << graphables.size() << " graphables"
+			<< "\t|\tviewport: " << std::setprecision(0) << width() << "x" << height()
+			<< "\t|\t" << PROG_NAME << " " << PROG_VER;
+		sbar.text = s.str();
+		sbar.draw();
+
+		//Display
+		window.display();
+	}
+
+
+
+	void Graph::mainloop()
+	{
+		bool isRunning = true;
+		sf::DoubleRect m_bounds;
+		sf::Vector2f m_cords;
+		bool m_press = false;
+		sf::Clock clock;
+		float dt;
+
+		while (isRunning)
+		{
+			//Get frame time
+			dt = clock.restart().asSeconds();
+
+			//Poll events
+			sf::Event event;
+			while (window.pollEvent(event)) {
+				//Window closed
+				if (event.type == sf::Event::Closed) {
+					isRunning = false;
+					window.close();
+				}
+				//Left mouse button pressed
+				if (event.type == sf::Event::MouseButtonPressed) {
+					m_press = true;
+					m_bounds = bounds;
+					m_cords = { static_cast<float>(sf::Mouse::getPosition().x),
+						static_cast<float>(sf::Mouse::getPosition().y) };
+				}
+				//Left mouse button released
+				if (event.type == sf::Event::MouseButtonReleased)
+					m_press = false;
+
+				//Spacebar pressed
+				if (event.type == sf::Event::KeyReleased && event.key.code == sf::Keyboard::Space) {
+					print(default_filename + std::to_string(print_counter) + ".png");
+					++print_counter;
+				}
+				//Window resize
+				if (event.type == sf::Event::Resized) {
+					window.setView(sf::View(sf::FloatRect(0.f, 0.f, static_cast<float>(width()), static_cast<float>(height()))));
+					for (sf::RenderTexture& layer : layers)
+						layer.create(static_cast<unsigned int>(width()), static_cast<unsigned int>(height()));
+				}
+			}
+
+			//Check mouse input
+			if (m_press) {
+				sf::Vector2d disp = armap(sf::Vector2f(static_cast<float>(sf::Mouse::getPosition().x), static_cast<float>(sf::Mouse::getPosition().y)) - m_cords);
+				disp.x *= -1;
+				bounds = m_bounds + disp;
+			}
+
+			//Check keyboard input
+
+			//Arrow keys - move viewport
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
+				shift_by(0, armap_y(scroll_speed * dt));
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
+				shift_by(0, armap_y(-scroll_speed * dt));
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
+				shift_by(armap_x(-scroll_speed * dt), 0);
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
+				shift_by(armap_x(scroll_speed * dt), 0);
+
+			//Square bracket - zoom viewport
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::LBracket)) {
+				if (sf::Keyboard::isKeyPressed(sf::Keyboard::LShift))
+					zoom_by(1 - zoom_speed * dt, 1);
+				else if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl))
+					zoom_by(1, 1 - zoom_speed * dt);
+				else
+					zoom_by(1 - zoom_speed * dt);
+			}
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::RBracket)) {
+				if (sf::Keyboard::isKeyPressed(sf::Keyboard::LShift))
+					zoom_by(1 + zoom_speed * dt, 1);
+				else if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl))
+					zoom_by(1, 1 + zoom_speed * dt);
+				else
+					zoom_by(1 + zoom_speed * dt);
+			}
+
+			update();
+		}
+	}
+
+	void Graph::print(const std::string& filename)
+	{
+		sf::RenderTexture screenshot;
+		screenshot.clear(bg_color);
+		sf::Sprite sprite;
+		for (sf::RenderTexture& layer : layers) {
+			sprite.setTexture(layer.getTexture());
+			screenshot.draw(sprite);
+		}
+		screenshot.display();
+		screenshot.getTexture().copyToImage().saveToFile(filename);
+	}
+
+	float Graph::height()
+	{
+		return static_cast<float>(window.getSize().y - status_bar_height);
+	}
+
+	float Graph::width()
+	{
+		return static_cast<float>(window.getSize().x);
+	}
+
+	unsigned int Graph::height(bool)
+	{
+		return window.getSize().y - static_cast<unsigned int>(status_bar_height);
+	}
+
+	unsigned int Graph::width(bool)
+	{
+		return window.getSize().x;
+	}
+
+}
