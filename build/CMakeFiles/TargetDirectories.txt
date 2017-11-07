@@ -1,4 +1,0 @@
-/home/dominic/Source/Graphy/build/CMakeFiles/rebuild_cache.dir
-/home/dominic/Source/Graphy/build/CMakeFiles/edit_cache.dir
-/home/dominic/Source/Graphy/build/CMakeFiles/graphy-demo.dir
-/home/dominic/Source/Graphy/build/CMakeFiles/graphy.dir

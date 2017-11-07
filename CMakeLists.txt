@@ -4,8 +4,8 @@ project (graphy-demo)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-set(SFML_INCLUDE_DIR ~/include)
-set(SFML_LIBRARY_DIR ~/lib)
+set(SFML_INCLUDE_DIR ~/.local/include)
+set(SFML_LIBRARY_DIR ~/.local/lib)
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 include_directories(${PROJECT_SOURCE_DIR}/src/internal/include)

@@ -1,1 +1,0 @@
-/usr/bin/c++    -std=c++11   CMakeFiles/graphy-demo.dir/examples/demo.cpp.o  -o graphy-demo  -L/home/dominic/lib libgraphy.so -lsfml-audio -lsfml-network -lsfml-graphics -lsfml-system -lsfml-window -Wl,-rpath,/home/dominic/lib:/home/dominic/Source/Graphy/build 
